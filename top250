@@ -1,0 +1,57 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import time
+
+# 豆瓣Top250电影的URL
+base_url = "https://movie.douban.com/top250"
+
+# 设置请求头，模拟浏览器请求
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+}
+
+# 存储电影信息的列表
+movies = []
+
+# 爬取每一页数据
+for start in range(0, 250, 25):
+    url = f"{base_url}?start={start}&filter="
+
+    try:
+        # 发送请求
+        response = requests.get(url, headers=headers)
+        response.encoding = 'utf-8'  # 确保页面编码正确
+
+        # 检查请求是否成功
+        if response.status_code != 200:
+            print(f"请求失败，状态码：{response.status_code}")
+            continue
+
+        # 使用BeautifulSoup解析页面
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # 获取每部电影的详细信息
+        for item in soup.find_all('div', class_='item'):
+            title = item.find('span', class_='title').text
+            rating = item.find('span', class_='rating_num').text
+            intro = item.find('span', class_='inq')
+            intro = intro.text if intro else '无简介'
+
+            # 保存电影数据
+            movies.append([title, rating, intro])
+
+        # 每爬取一页，暂停1秒，防止过于频繁的请求
+        time.sleep(1)
+
+    except Exception as e:
+        print(f"爬取过程中发生错误：{e}")
+        continue
+
+# 将数据转换为DataFrame
+df = pd.DataFrame(movies, columns=['电影名', '评分', '简介'])
+
+# 保存为Excel文件
+df.to_excel('douban_top250.xlsx', index=False, engine='openpyxl')
+
+print("数据爬取并保存为douban_top250.xlsx成功！")
