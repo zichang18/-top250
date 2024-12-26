@@ -1,6 +1,7 @@
 # douban-top250
 用python爬取豆瓣电影top250
 并将爬取的电影名、评分、简介保存在Excel表格中
+最后将结果用柱状图等进行可视化展示
 
 # 效果展示
 ![image](https://github.com/user-attachments/assets/de442008-19ab-4af8-9d37-031951d971cd)
