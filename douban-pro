@@ -1,0 +1,121 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import time
+import matplotlib.pyplot as plt
+import seaborn as sns
+from matplotlib import rcParams
+
+# 设置字体为 SimHei（黑体），以支持中文
+plt.rcParams['font.sans-serif'] = ['SimHei']  # 或者 ['Microsoft YaHei']
+plt.rcParams['axes.unicode_minus'] = False   # 解决坐标轴负号显示问题
+
+
+# 豆瓣Top250电影的URL
+base_url = "https://movie.douban.com/top250"
+
+# 设置请求头，模拟浏览器请求
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36'
+}
+
+# 存储电影信息的列表
+movies = []
+
+# 爬取每一页数据
+for start in range(0, 250, 25):
+    url = f"{base_url}?start={start}&filter="
+
+    try:
+        # 发送请求
+        response = requests.get(url, headers=headers)
+        response.encoding = 'utf-8'  # 确保页面编码正确
+
+        # 检查请求是否成功
+        if response.status_code != 200:
+            print(f"请求失败，状态码：{response.status_code}")
+            continue
+
+        # 使用BeautifulSoup解析页面
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # 获取每部电影的详细信息
+        for item in soup.find_all('div', class_='item'):
+            title = item.find('span', class_='title').text
+            rating = item.find('span', class_='rating_num').text
+            intro = item.find('span', class_='inq')
+            intro = intro.text if intro else '无简介'
+
+            # 保存电影数据
+            movies.append([title, float(rating), intro])
+
+        # 每爬取一页，暂停1秒，防止过于频繁的请求
+        time.sleep(1)
+
+    except Exception as e:
+        print(f"爬取过程中发生错误：{e}")
+        continue
+
+# 将数据转换为DataFrame
+df = pd.DataFrame(movies, columns=['电影名', '评分', '简介'])
+
+# 保存为Excel文件
+df.to_excel('douban_top250.xlsx', index=False, engine='openpyxl')
+
+print("数据爬取并保存为douban_top250.xlsx成功！")
+
+# 数据可视化部分
+# 1. 评分分布直方图
+plt.figure(figsize=(10, 6))
+sns.histplot(df['评分'], bins=10, kde=True, color='skyblue')
+plt.title('豆瓣Top 250电影评分分布', fontsize=16)
+plt.xlabel('评分', fontsize=14)
+plt.ylabel('电影数量', fontsize=14)
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()
+plt.savefig('rating_distribution.png')
+plt.show()
+
+# 2. Top 10电影简介词云（需要安装wordcloud库）
+try:
+    from wordcloud import WordCloud
+
+    # 设置字体路径，确保正确加载中文字体
+    font_path = r'C:\Windows\Fonts\SimHei.ttf'  # 请根据系统实际路径调整
+
+    # 移除"无简介"的条目
+    intro_text = " ".join(df.loc[df['简介'] != '无简介', '简介'])
+
+    wordcloud = WordCloud(
+        width=800,
+        height=400,
+        font_path=font_path,  # 指定字体文件
+        background_color='white',
+        colormap='viridis'
+    ).generate(intro_text)
+
+    plt.figure(figsize=(10, 6))
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis('off')
+    plt.title('豆瓣Top 250电影简介词云', fontsize=16)
+    plt.tight_layout()
+    plt.savefig('intro_wordcloud.png')
+    plt.show()
+except ImportError:
+    print("未安装wordcloud库，跳过词云生成。")
+except FileNotFoundError:
+    print("字体文件未找到，请检查字体路径是否正确。")
+
+# 3. 电影评分Top 10柱状图
+top10_movies = df.nlargest(10, '评分')
+plt.figure(figsize=(10, 6))
+
+sns.barplot(data=top10_movies, x='评分', y='电影名', hue='评分', dodge=False, palette='coolwarm', legend=False)
+
+plt.title('豆瓣Top 250电影评分最高的10部电影', fontsize=16)
+plt.xlabel('评分', fontsize=14)
+plt.ylabel('电影名', fontsize=14)
+plt.tight_layout()
+plt.savefig('top10_movies.png')
+plt.show()
+
