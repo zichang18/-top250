@@ -7,8 +7,12 @@
 
 # 需要的模块
         beautifulsoup
+        pandas
+        time
+        requests
 ## 外部库安装
         pip install requests beautifulsoup4
+        pip install pandas
 ## 运行环境
         python3.10
-        pycharm
+        PyCharm
