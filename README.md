@@ -9,6 +9,6 @@
         beautifulsoup
 ## 外部库安装
         pip install requests beautifulsoup4
-# 运行环境
+## 运行环境
         python3.10
         pycharm
