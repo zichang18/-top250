@@ -14,6 +14,7 @@ headers = {
 # 存储电影信息的列表
 movies = []
 
+
 # 爬取每一页数据
 for start in range(0, 250, 25):
     url = f"{base_url}?start={start}&filter="
